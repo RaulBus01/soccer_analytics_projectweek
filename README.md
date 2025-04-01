@@ -1,6 +1,35 @@
 # OHL project week
+# AI-international-group-18
+<p>
+  Q1: What is our target?
+  <p>Time to receover the ball , pressing sucess rate.
+  <p>Should we detect patterns for a succesfull transition in a football matchs for OH Leuven and their adverasries? Detect patterns for particular players?
+    
+  </p>
+  <p>
+    Should we rank players from a team by defensive contributuion in transitions(player with the most interceptions?)
+  </p>
+  
+  Q2: How will we manage it? 
+  <p>
+  Use Voronoi Plots for displaying recovery & interception to analyze the control of the field when these type of events happens. Also plot heat maps for showing the reaction of players to turn-over.
+  </p>
+  </p>
 
-# How to Fork and Collaborate on This Repository
+# For time to recover the ball
+<p>We can use the MatchEvent table and use timestamp, end_timestamp and result fields.</p>
+<p>Filter events where ball_owning_team changes </p>
+<p>Calculate the time difference between possesion changes </p>
+ 
+# For pressing success rate
+<p>
+  Use the MatchEvent table annd filter 
+</p>
+<p>
+  Calculate the ratio of successful presses to total pressing attempts
+</p>
+
+## How to Fork and Collaborate on This Repository
 
 This repository is designed to help collaborate effectively. Follow these steps to fork the project and contribute:
 
