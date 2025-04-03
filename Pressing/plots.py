@@ -16,7 +16,8 @@ def create_animation(df_ball_interp, home_frames, home_positions, away_frames, a
     fig, ax = pitch.draw(figsize=(12, 6))
     
     marker_kwargs = {'marker': 'o', 'markeredgecolor': 'black', 'linestyle': 'None'}
-    ball, = ax.plot([], [], ms=6, markerfacecolor='w', zorder=3, **marker_kwargs)
+ 
+    ball, = ax.plot([], [], ms=10, markerfacecolor='yellow', zorder=3, **marker_kwargs)
     away, = ax.plot([], [], ms=10, markerfacecolor='#b94b75', **marker_kwargs)
     home, = ax.plot([], [], ms=10, markerfacecolor='#7f63b8', **marker_kwargs)
     
@@ -35,6 +36,7 @@ def create_animation(df_ball_interp, home_frames, home_positions, away_frames, a
             away_x = [pos[0] / 100 for pos in away_pos.values()]
             away_y = [pos[1] / 100 for pos in away_pos.values()]
             
+        
             home.set_data(home_x, home_y)
             away.set_data(away_x, away_y)
             return (ball, away, home)
@@ -69,7 +71,7 @@ def create_voronoi_animation(ball_df, home_frames, home_positions, away_frames, 
     ball_dot, = ax_pitch.plot([], [], ms=6, markerfacecolor='white', zorder=3, **marker_kwargs)
     home_dot, = ax_pitch.plot([], [], ms=10, markerfacecolor='#7f63b8', **marker_kwargs)
     away_dot, = ax_pitch.plot([], [], ms=10, markerfacecolor='#b94b75', **marker_kwargs)
-    ball_holder_marker, = ax_pitch.plot([], [], marker='*', color='red', markersize=20, zorder=4)
+    ball_holder_marker, = ax_pitch.plot([], [], marker='o', color='red', markersize=10, zorder=4)
 
     # Text displays
     possession_display = ax_possession.text(0.1, 0.8, "", fontsize=18, va='top')
@@ -441,19 +443,20 @@ def create_voronoi_animation_with_labels(df_teams,ball_df, home_frames, home_pos
                         if last_actions[player_id]["frames_left"] <= 0:
                             del last_actions[player_id]
                     
-                    # Add action to label if available
+                   
                     if player_id in last_actions:
-                        label_text = f"{short_name}\n{last_actions[player_id]['action']}"
-                
-                # Create label with team-specific styling
+                        label_text = f"{short_name}\n{last_actions.get(player_id, {}).get('action', 'None').upper()}"
+                     
                 if team_name == 'Home':
                     if player_name == 'Ball':
                         continue
+                    
                     label = ax_pitch.text(px, py, label_text, 
                                         fontsize=10, color='white', ha='center', 
                                         bbox=dict(facecolor='#7f63b8', alpha=0.7, edgecolor='none'),
                                         zorder=5)
                 else:
+                    
                     label = ax_pitch.text(px, py, label_text, 
                                         fontsize=10, color='white', ha='center', 
                                         bbox=dict(facecolor='#b94b75', alpha=0.7, edgecolor='none'),

@@ -60,6 +60,7 @@ SELECT
         players p ON pt.player_id = p.player_id
     WHERE 
         pt.game_id = %s
+        AND p.player_name != 'Ball'
     ORDER BY 
         pt.frame_id, p.team_id
     """
