@@ -10,7 +10,7 @@ from IPython.display import HTML
 from queries import get_all_matches, load_data
 from functions import interpolate_ball_data, prepare_player_data, get_interpolated_positions
 from loadData import load_data_local, simulate_list_of_all_matches_query
-from plots import create_voronoi_animation
+from plots import create_voronoi_animation,create_voronoi_animation_with_labels,create_animation
 
 st.set_page_config(layout="wide", page_title="Soccer Match Viewer")
 
@@ -33,48 +33,7 @@ if 'skip_frames' not in st.session_state:
 if 'playback_speed' not in st.session_state:
     st.session_state.playback_speed = 1
 
-def create_animation(df_ball_interp, home_frames, home_positions, away_frames, away_positions, fps=24):
-    """Create a complete animation of the soccer match"""
-    pitch = Pitch(pitch_type='metricasports', goal_type='line', pitch_width=68, pitch_length=105)
-    fig, ax = pitch.draw(figsize=(12, 6))
-    
-    marker_kwargs = {'marker': 'o', 'markeredgecolor': 'black', 'linestyle': 'None'}
-    ball, = ax.plot([], [], ms=6, markerfacecolor='w', zorder=3, **marker_kwargs)
-    away, = ax.plot([], [], ms=10, markerfacecolor='#b94b75', **marker_kwargs)
-    home, = ax.plot([], [], ms=10, markerfacecolor='#7f63b8', **marker_kwargs)
-    
-    def animate_func(i):
-        try:
-            ball_x = df_ball_interp.iloc[i]['x'] / 100
-            ball_y = df_ball_interp.iloc[i]['y'] / 100
-            ball.set_data([ball_x], [ball_y])
-            
-            frame = df_ball_interp.iloc[i]['frame_id']
-            home_pos = get_interpolated_positions(frame, home_frames, home_positions)
-            away_pos = get_interpolated_positions(frame, away_frames, away_positions)
-            
-            home_x = [pos[0] / 100 for pos in home_pos.values()]
-            home_y = [pos[1] / 100 for pos in home_pos.values()]
-            away_x = [pos[0] / 100 for pos in away_pos.values()]
-            away_y = [pos[1] / 100 for pos in away_pos.values()]
-            
-            home.set_data(home_x, home_y)
-            away.set_data(away_x, away_y)
-            return (ball, away, home)
-        except Exception as e:
-            print(f"Animation error: {e}")
-            ball.set_data([], [])
-            home.set_data([], [])
-            away.set_data([], [])
-            return (ball, away, home)
-    
-    frames = len(df_ball_interp)  
-    anim = FuncAnimation(
-        fig, animate_func, frames=frames, 
-        interval=1000/fps, blit=True
-    )
-    plt.close(fig)
-    return anim
+
 
 def main():
     with st.sidebar:
@@ -93,15 +52,17 @@ def main():
         # Load match data button
         if st.button("Load Match Data"):
             with st.spinner("Loading match data..."):
-                df_ball, df_home, df_away, df_possesion_first_period, df_possesion_second_period = load_data(match_id)
+                df_ball, df_teams, df_home, df_away, df_actions_label, df_possesion_first_period, df_possesion_second_period = load_data(match_id)
                 
                 if df_ball is None or df_ball.empty:
                     st.error(f"No data available for match {match_id}")
                     return
                 
+                st.session_state.df_teams = df_teams
                 st.session_state.df_ball_original = df_ball
                 st.session_state.df_home_original = df_home
                 st.session_state.df_away_original = df_away
+                st.session_state.df_actions_label = df_actions_label
                 
                 frames_between = 12  
                 st.session_state.df_ball_interp = interpolate_ball_data(df_ball, frames_between)
@@ -160,11 +121,18 @@ def main():
                     (st.session_state.df_ball_original['timestamp'] >= window_start) & 
                     (st.session_state.df_ball_original['timestamp'] <= window_end)
                 ]
+                df_actions_label_filtered = st.session_state.df_actions_label[
+                    (st.session_state.df_actions_label['timestamp'] >= window_start) &
+                    (st.session_state.df_actions_label['timestamp'] <= window_end)
+                ]
+                
+
 
                 if not df_home_filtered.empty and not df_away_filtered.empty and not df_ball_filtered.empty:
                     df_ball_interp = interpolate_ball_data(df_ball_filtered, st.session_state.frames_between)
                     home_frames, home_positions = prepare_player_data(df_home_filtered, "home")
                     away_frames, away_positions = prepare_player_data(df_away_filtered, "away")
+                    df_teams = st.session_state.df_teams.copy()
 
                     st.session_state.possession_df_ball_interp = df_ball_interp
                     st.session_state.possession_home_frames = home_frames
@@ -193,17 +161,27 @@ def main():
                     with col2:
                         if st.button("Generate Voronoi Animation"):
                             with st.spinner("Generating Voronoi animation..."):
-                                voronoi_anim = create_voronoi_animation(
+                                # voronoi_anim = create_voronoi_animation(
+                                #     df_ball_interp,
+                                #     home_frames,
+                                #     home_positions,
+                                #     away_frames,
+                                #     away_positions
+                                # )
+                                voronoi_anim = create_voronoi_animation_with_labels(
+                                    df_teams,
                                     df_ball_interp,
                                     home_frames,
                                     home_positions,
                                     away_frames,
-                                    away_positions
+                                    away_positions,
+                                    actions_df=df_actions_label_filtered,
                                 )
                                 st.session_state.possession_voronoi_animation = voronoi_anim.to_jshtml()
                                 st.session_state.viewing_possession = True
                                 st.success("Voronoi animation ready!")
                                 st.rerun()
+                    
 
                 else:
                     st.error("Insufficient data for the selected possession change.")

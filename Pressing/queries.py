@@ -44,13 +44,26 @@ WHERE pt.game_id = %s
 """
 
 TEAM_QUERIES = """
-SELECT pt.frame_id, pt.timestamp, pt.player_id, pt.x, pt.y, p.team_id
-FROM player_tracking pt
-JOIN players p ON pt.player_id = p.player_id
-JOIN teams t ON p.team_id = t.team_id
-WHERE pt.game_id = %s AND p.player_id != 'ball' AND p.team_id = %s
-ORDER BY timestamp;
-"""
+SELECT 
+        pt.frame_id,
+        pt.timestamp,
+        pt.period_id,
+        pt.player_id,
+        p.player_name,
+        p.jersey_number,
+        p.team_id,
+        pt.x,
+        pt.y
+    FROM 
+        player_tracking pt
+    JOIN 
+        players p ON pt.player_id = p.player_id
+    WHERE 
+        pt.game_id = %s
+    ORDER BY 
+        pt.frame_id, p.team_id
+    """
+
 LIST_OF_ALL_MATCHES = """
 SELECT 
     m.match_id,
@@ -155,6 +168,43 @@ POSSESION_QUERY = """
     ORDER BY
         s.period_id, s.seconds
     """
+SPADL_QUERY = """
+SELECT  
+    p.player_id,
+    p.player_name, 
+    pt.frame_id, 
+    pt.x, 
+    pt.y, 
+    t.team_name, 
+    sa.action_type, 
+    sa.bodypart,
+    pt.timestamp,
+    sa.seconds,
+    EXTRACT(EPOCH FROM pt.timestamp::interval) AS timestamp_seconds
+FROM 
+    spadl_actions sa
+INNER JOIN 
+    players p ON p.player_id = sa.player_id
+INNER JOIN 
+    player_tracking pt ON p.player_id = pt.player_id
+INNER JOIN 
+    teams t ON t.team_id = p.team_id
+WHERE 
+    pt.game_id = %s 
+    AND sa.game_id = %s
+    AND EXTRACT(EPOCH FROM pt.timestamp::interval) = sa.seconds
+GROUP BY
+    p.player_id,
+    p.player_name, 
+    pt.frame_id, 
+    pt.x, 
+    pt.y, 
+    t.team_name, 
+    sa.action_type, 
+    sa.bodypart,
+    pt.timestamp,
+    sa.seconds;
+"""
 
     
 
@@ -175,18 +225,25 @@ def load_data(match_id):
     
 
     df_ball = pd.read_sql_query(BALL_QUERY, conn, params=(match_id,))
-    df_home = pd.read_sql_query(TEAM_QUERIES, conn, params=(match_id, team_ids[0],))
-    df_away = pd.read_sql_query(TEAM_QUERIES, conn, params=(match_id, team_ids[1],))
-    
+    df_teams = pd.read_sql_query(TEAM_QUERIES, conn, params=(match_id,))
+    df_home = df_teams[df_teams['team_id'] == team_ids[0]]
+    df_away = df_teams[df_teams['team_id'] == team_ids[1]]
+    df_actions_label = pd.read_sql_query(SPADL_QUERY, conn, params=(match_id, match_id))
     df_possesion = pd.read_sql_query(POSSESION_QUERY, conn, params=(match_id,))
-    
+    print(df_actions_label.head())
+    print(df_home.head())
+    print(df_away.head())
+
     df_possesion_first_period = df_possesion[df_possesion['period_id'] == 1]
     df_possesion_second_period = df_possesion[df_possesion['period_id'] == 2]
     df_home['timestamp'] = pd.to_timedelta(df_home['timestamp']).dt.total_seconds().astype(float)
     df_away['timestamp'] = pd.to_timedelta(df_away['timestamp']).dt.total_seconds().astype(float)
     df_ball['timestamp'] = pd.to_timedelta(df_ball['timestamp']).dt.total_seconds().astype(float)
+    df_actions_label['timestamp'] = pd.to_timedelta(df_actions_label['timestamp']).dt.total_seconds().astype(float)
+    print(df_actions_label.head())
+
     conn.close()
-    return df_ball, df_home, df_away,df_possesion_first_period,df_possesion_second_period
+    return df_ball, df_teams, df_home, df_away, df_actions_label, df_possesion_first_period, df_possesion_second_period
 
 
 
