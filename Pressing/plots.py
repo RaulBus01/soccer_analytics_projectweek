@@ -224,14 +224,14 @@ def create_voronoi_animation(ball_df, home_frames, home_positions, away_frames, 
     plt.close(fig)  # Close the figure to prevent displaying it twice
     return anim
 
-def create_voronoi_animation_with_labels(df_teams,ball_df, home_frames, home_positions, away_frames, away_positions, actions_df=None, fps=24, ):
+def create_voronoi_animation_with_labels(df_teams,ball_df, home_frames, home_positions, away_frames, away_positions, actions_df, fps=24, ):
    
 
     # Initialize collections
     voronoi_patches = []
     player_labels = []
     last_actions = {}  # To persist actions for a few frames
-    ACTION_PERSIST_FRAMES = 10
+    ACTION_PERSIST_FRAMES = 25
     
     # Create figure and axes
     fig = plt.figure(figsize=(15, 8))

@@ -7,7 +7,7 @@ from matplotlib import rc
 from mplsoccer import Pitch
 import time
 from IPython.display import HTML
-from queries import get_all_matches, load_data
+from queries import get_all_matches, load_basic_data, load_possession_data, load_possession_summary, load_spadl
 from functions import interpolate_ball_data, prepare_player_data, get_interpolated_positions
 from loadData import load_data_local, simulate_list_of_all_matches_query
 from plots import create_voronoi_animation,create_voronoi_animation_with_labels,create_animation
@@ -52,12 +52,21 @@ def main():
         # Load match data button
         if st.button("Load Match Data"):
             with st.spinner("Loading match data..."):
-                df_ball, df_teams, df_home, df_away, df_actions_label, df_possesion_first_period, df_possesion_second_period = load_data(match_id)
-                
+              
+                df_ball,df_teams= load_basic_data(match_id)
+                df_actions_label = load_spadl(match_id)
+                df_possesion = load_possession_data(match_id)
+                df_possesion_first_period = df_possesion[df_possesion['period_id'] == 1].copy()
+                df_possesion_second_period = df_possesion[df_possesion['period_id'] == 2].copy()
+                unique_team_ids = df_teams['team_id'].unique()
                 if df_ball is None or df_ball.empty:
                     st.error(f"No data available for match {match_id}")
                     return
                 
+          
+                df_home = df_teams[df_teams['team_id'] == unique_team_ids[0]].copy()
+                df_away = df_teams[df_teams['team_id'] == unique_team_ids[1]].copy()
+        
                 st.session_state.df_teams = df_teams
                 st.session_state.df_ball_original = df_ball
                 st.session_state.df_home_original = df_home
@@ -161,13 +170,6 @@ def main():
                     with col2:
                         if st.button("Generate Voronoi Animation"):
                             with st.spinner("Generating Voronoi animation..."):
-                                # voronoi_anim = create_voronoi_animation(
-                                #     df_ball_interp,
-                                #     home_frames,
-                                #     home_positions,
-                                #     away_frames,
-                                #     away_positions
-                                # )
                                 voronoi_anim = create_voronoi_animation_with_labels(
                                     df_teams,
                                     df_ball_interp,
@@ -182,7 +184,6 @@ def main():
                                 st.success("Voronoi animation ready!")
                                 st.rerun()
                     
-
                 else:
                     st.error("Insufficient data for the selected possession change.")
 
@@ -207,13 +208,6 @@ if 'data_loaded' in st.session_state and st.session_state.data_loaded:
                 st.components.v1.html(st.session_state.possession_voronoi_animation, height=1200, scrolling=True)
             else:
                 st.warning("No Voronoi animation available. Please load match data.")
-            
-   
         
-
-     
-        
-      
-
 if __name__ == "__main__":
     main()
